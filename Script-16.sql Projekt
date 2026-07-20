@@ -1,0 +1,708 @@
+---1.
+SELECT * FROM czechia_payroll;
+---Overenie rozsahu rokov
+SELECT min(payroll_year), max(payroll_year) FROM czechia_payroll;
+
+---Výpočet priemernej mzdy odvetví počas rokov 2000-2021
+CREATE VIEW avg_industry_salary as
+SELECT 
+cp.payroll_year, 
+cpib."name" AS industry_name,
+cp.industry_branch_code,
+avg(value) AS priemerná_mzda_odvetví 
+FROM czechia_payroll AS cp
+JOIN czechia_payroll_industry_branch AS cpib ON cp.industry_branch_code =cpib.code 
+WHERE cp.payroll_year BETWEEN 2000 AND 2021 
+AND cp.value_type_code = 5958 
+AND cp.unit_code=200 
+AND cp.calculation_code=100 
+GROUP BY cp.payroll_year,cp.industry_branch_code,cpib."name";
+
+--- Tu je smerodajná kombinácia kodu jednotiek pre (tisíce osôb) a kodu výpočtu pre (fyzický výpočet,čiže počíta fyzické osoby, teda zamestnancov),a to je správne pre výsledok dopytu
+
+SELECT * FROM avg_industry_salary;
+
+
+---Nasleduje porovnanie miezd odvetví počas rokov
+
+CREATE VIEW Vyvoj_miezd AS 
+SELECT 
+    industry_name,
+    payroll_year,
+    priemerná_mzda_odvetví,
+    -- 1. Výpočet mzdy za minulý rok
+    LAG(priemerná_mzda_odvetví, 1) OVER (
+        PARTITION BY industry_name       
+        ORDER BY payroll_year   
+    ) AS mzda_minuly_rok,
+    -- 2. Priamy výpočet trendu v percentách (zopakujeme LAG funkciu)
+    ROUND(
+        ((priemerná_mzda_odvetví - LAG(priemerná_mzda_odvetví, 1) OVER (
+            PARTITION BY industry_name       
+            ORDER BY payroll_year   
+        )) / LAG(priemerná_mzda_odvetví, 1) OVER (
+            PARTITION BY industry_name       
+            ORDER BY payroll_year   
+        )) * 100,
+        2
+    ) AS trend_v_percentach
+FROM 
+    avg_industry_salary 
+WHERE 
+    payroll_year BETWEEN 2000 AND 2021
+ORDER BY 
+    industry_name,
+    payroll_year;
+
+SELECT * FROM Vyvoj_miezd;
+
+--- Prezrel som výstup tabuľky porovnania miezd odvetví a zistenia píšem nižšie podľa sledovania čísel vývoja mzdy
+
+---Administratíva - nárast
+---činnosti v oblasti nemovitostí - nárast
+---Doprava a skladování - nárast
+---Informační a komunikační činnosti - nárast
+--- Kultúrni,zábavní a rekreační činnosti - nárast
+--- Ostatní činnosti - nárast
+---Penežnictví a pojišťovníctvi - nárast
+--- Profesní,vedecké a technické činnosti - nárast
+--- Stavebníctví - nárast
+--- Težba a dobývání - nárast
+--- Ubytování,stravování a pohostinství - nárast
+--- Velkoobchod a maloobchod - nárast
+---Verejná správa a obrana - nárast
+--- Výroba a rozvod elektriny,plynu - nárast
+--- Vzdelávání -nárast
+--- Zásobování vodou, činnosti s odpady a sanacemi - nárast
+--- Zdravotní a sociální péče - nárast
+--- Zemedelství,lesníctvi,rybárství - nárast
+--- Zpracovatelský prumysl - nárast
+
+--- Takže všetky odvetvia vykazujú nárast miezd
+
+
+
+
+
+
+
+
+
+
+
+---2.
+
+
+---Výpočet priemernej ceny chleba a mlieka od prveho roku merania po najnovší
+
+CREATE VIEW avg_food_prices as 
+SELECT 
+    EXTRACT(YEAR FROM cp2.date_from::date) AS rok,
+    AVG(CASE WHEN cp2.category_code = 111301 THEN cp2.value END) AS average_bread_price,
+    AVG(CASE WHEN cp2.category_code = 114201 THEN cp2.value END) AS average_milk_price
+FROM czechia_price AS cp2
+WHERE cp2.category_code IN (111301, 114201)
+  AND cp2.date_from::date BETWEEN '2006-01-02' AND '2018-12-10'
+GROUP BY EXTRACT(YEAR FROM cp2.date_from::date);
+
+
+SELECT * FROM avg_food_prices;
+
+---Pre zistenie originálneho rozsahu merania v czechia_price
+SELECT min(date_from),max(date_from) FROM czechia_price;
+
+
+---Pre istotu aj pre czechia_payroll, kedže sa odvolávame na mzdy
+SELECT min(payroll_year),max(payroll_year) FROM czechia_payroll;
+
+---Nasleduje výpočet priemernej mzdy za roky 2006 až 2018
+SELECT * FROM czechia_payroll;
+
+CREATE VIEW avg_wage as
+SELECT 
+cpib.name AS industry_name,
+cp.industry_branch_code,
+avg(value) AS avg_salary
+FROM czechia_payroll AS cp 
+LEFT JOIN czechia_payroll_industry_branch AS cpib ON cp.industry_branch_code=cpib.code
+WHERE cp.value_type_code=5958
+AND cp.unit_code=80403
+AND cp.calculation_code=100
+AND cp.payroll_year BETWEEN 2006 AND 2018
+AND cp.industry_branch_code='C'
+GROUP BY cp.industry_branch_code,cpib.name
+ORDER BY cp.industry_branch_code;
+
+SELECT * FROM avg_wage;
+
+--- Skript zlyhal na zlom výbere kódov z tabuľky, nižšie som vypracoval nápravu v pohľade industry_pay
+
+
+---kod pre opravu
+SELECT DISTINCT 
+    value_type_code, 
+    unit_code
+FROM czechia_payroll
+WHERE payroll_year BETWEEN 2006 AND 2018);
+
+---Overenie dostupnosti dát pre odvetvia
+SELECT 
+value_type_code,
+unit_code,
+calculation_code,
+industry_branch_code
+FROM czechia_payroll 
+WHERE calculation_code=100 
+AND industry_branch_code='C'
+AND value_type_code =5958
+AND unit_code=200;
+
+---Filter odvetvia a daných rokov pre otázku 2
+SELECT 
+payroll_year,
+industry_branch_code,
+value_type_code,
+unit_code,
+calculation_code
+FROM czechia_payroll 
+WHERE payroll_year BETWEEN 2006 AND 2018
+AND industry_branch_code ='C'
+AND value_type_code =5958
+AND unit_code=200
+AND calculation_code =100;
+
+---Spojenie s číselníkom 
+SELECT 
+payroll_year,
+industry_branch_code,
+cpib."name" AS industry_name,
+value_type_code,
+unit_code,
+calculation_code
+FROM czechia_payroll AS cp
+JOIN czechia_payroll_industry_branch AS cpib ON cp.industry_branch_code=cpib.code
+WHERE payroll_year BETWEEN 2006 AND 2018
+AND industry_branch_code='C'
+AND value_type_code=5958
+AND unit_code=200
+AND calculation_code=100;
+
+---Agregacia a vypocet priemeru
+
+CREATE VIEW industry_pay AS 
+SELECT 
+    cp.industry_branch_code,
+    cpib.name AS industry_name,
+    cp.value_type_code,
+    cp.unit_code,
+    cp.calculation_code,
+    cp.payroll_year, 
+    AVG(cp.value) AS avg_wage  
+FROM czechia_payroll AS cp 
+JOIN czechia_payroll_industry_branch AS cpib 
+    ON cp.industry_branch_code = cpib.code 
+WHERE cp.payroll_year BETWEEN 2006 AND 2018 
+  AND cp.industry_branch_code = 'C'  
+  AND cp.value_type_code = 5958
+  AND cp.unit_code = 200             
+  AND cp.calculation_code = 100
+GROUP BY 
+    cp.industry_branch_code,
+    cpib.name,
+    cp.value_type_code,
+    cp.unit_code,
+    cp.payroll_year,
+    cp.calculation_code;
+
+---Toto view funguje, pretože pracuje so správnou kombináciou kódov priradených k stĺpcom
+
+SELECT * FROM industry_pay;
+
+ 
+ ---Vzorec pre konečný výpočet kg chleba a l mlieka dostupných za priemernú mzdu v rozsahu rokov,spoločných pre tabuľky c-payroll a c.price
+
+CREATE VIEW konečný_prehľad_množstva AS
+SELECT 
+    afp.rok,
+    ip.industry_name, 
+    ROUND(ip.avg_wage::numeric, 2) AS priemerna_mzda,
+    ROUND(afp.average_bread_price::numeric, 2) AS cena_chleba,
+    ROUND(afp.average_milk_price::numeric, 2) AS cena_mlieka,
+    
+    -- Výpočty 
+    ROUND((ip.avg_wage / afp.average_bread_price)::numeric, 2) AS kg_chleba_za_mzdu,
+    ROUND((ip.avg_wage / afp.average_milk_price)::numeric, 2) AS litrov_mlieka_za_mzdu
+
+FROM avg_food_prices AS afp -- Tu definujem skratku afp
+JOIN industry_pay AS ip ON afp.rok = ip.payroll_year -- Tu definujem ip a spájam ich
+ORDER BY afp.rok ASC; 
+
+SELECT * FROM konečný_prehľad_množstva;
+
+---Teraz vyberiem kg chleba a l mlieka za každých 6 rokov ako podľa mňa,vhodnú metriku pre finálnu odpoveď na výskumnú 2.otázku
+SELECT 
+    -- Prvé obdobie (2006 - 2012)
+    FLOOR(SUM(CASE WHEN rok BETWEEN 2006 AND 2012 THEN kg_chleba_za_mzdu ELSE 0 END)) AS chlieb_2006_2012_kg,
+    FLOOR(SUM(CASE WHEN rok BETWEEN 2006 AND 2012 THEN litrov_mlieka_za_mzdu ELSE 0 END)) AS mlieko_2006_2012_l,
+    
+    -- Druhé obdobie (2012 - 2018)
+    FLOOR(SUM(CASE WHEN rok BETWEEN 2012 AND 2018 THEN kg_chleba_za_mzdu ELSE 0 END)) AS chlieb_2012_2018_kg,
+    FLOOR(SUM(CASE WHEN rok BETWEEN 2012 AND 2018 THEN litrov_mlieka_za_mzdu ELSE 0 END)) AS mlieko_2012_2018_l 
+FROM konečný_prehľad_množstva
+WHERE rok BETWEEN 2006 AND 2018;
+---Za celé spoločné merané obdobie rozdelené na dvakrát (6 rokov), bolo možné za priemernú mzdu kúpiť v prvých 6 rokoch(7,59) kg chleba a 9,13 l mlieka
+--- Počas ďalších 6 rokov (2012 až 2018) sa dalo kúpiť 8,15 kg chleba a 9,74 l mlieka, čo predstavuje rozdiel 0,56 kg chleba a 0,61 l mlieka.
+
+
+ 
+---3.
+SELECT min(date_from),max(date_from) FROM czechia_price;
+
+SELECT *
+FROM czechia_price_category;
+
+---27 potravín
+
+--- Po zistení počtu potravín upravím formát dátumu na mesiac a rok,pridám názov potraviny ku kódu a sčítam ceny podľa rokov
+CREATE VIEW cena_na_mesiac AS
+SELECT 
+cp.category_code,
+cpc.name AS food_name,
+date_trunc('month',cp.date_from)::date AS month_start,
+sum(cp.value) AS total_price
+FROM czechia_price cp
+JOIN czechia_price_category AS cpc ON cp.category_code=cpc.code
+WHERE cp.date_from BETWEEN '2006-01-02' AND '2018-12-10'
+GROUP BY cp.category_code,cpc.name, date_trunc('month',cp.date_from);
+
+
+--- Použil som funkciu date_trunc pre výber začiatku mesiaca a jeho orezanie od časovej známky
+
+SELECT * FROM cena_na_mesiac;
+
+--- ďalej vypočítam ceny medzi rokmi
+CREATE VIEW food_yoy_prices AS 
+SELECT
+  food_name,
+  month_start,
+  total_price, 
+  ---Extrahovanie mesiaca a roka z formátu dátumu v primárnej tabuľke
+  extract(MONTH FROM month_start) AS MONTH,
+  extract(YEAR FROM month_start) AS YEAR,
+  ---month over month, výpočet medzi mesiacmi
+  CASE
+    WHEN LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start) IS NULL THEN NULL
+    WHEN LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start) = 0 THEN NULL
+    ELSE (total_price - LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start))
+         / NULLIF(LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start), 0) * 100
+  END AS pct_change_mom,
+  ---yoy, výpočet medzi rokmi
+  CASE
+    WHEN LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start) IS NULL THEN NULL
+    WHEN LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start) = 0 THEN NULL
+    ELSE (total_price - LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start))
+         / NULLIF(LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start), 0) * 100
+  END AS pct_change_yoy
+FROM cena_na_mesiac;
+
+SELECT * FROM food_yoy_prices;
+
+--- percentil medziročnej zmeny je pre rok 2006 prázdny, kvôli tomu, že je to prvý rok v týchto dátach a teda nemá porovnanie s minulým rokom
+
+--- Takto som dostal % zmenu oproti predošlému mesiacu a rovnakému mesiacu pred rokom
+
+---Ešte potrebujem priemer medziročných rastov potravín za celé obdobie
+CREATE VIEW yoy_avg_food AS 
+SELECT 
+food_name,
+avg(pct_change_yoy) AS avg_yoy_growth 
+FROM food_yoy_prices
+GROUP BY food_name
+ORDER BY food_name;
+
+SELECT * FROM yoy_avg_food;
+
+SELECT food_name
+FROM yoy_avg_food
+WHERE avg_yoy_growth >0
+ORDER BY avg_yoy_growth asc
+LIMIT 1;
+
+
+---Najnižší % nárast a teda aj najpomalší nárast z kategórie potravín majú papriky - najbližšia kladná hodnota k 0
+
+
+
+
+
+
+
+---4.
+SELECT * FROM czechia_payroll AS cp; 
+
+SELECT * FROM czechia_price;
+
+---Medziročný rast miezd
+CREATE VIEW medziročný_rast_miezd AS 
+SELECT 
+    industry_name,
+    payroll_year,
+    priemerná_mzda_odvetví,
+    mzda_minuly_rok,
+    ROUND(
+        ((priemerná_mzda_odvetví - mzda_minuly_rok) / mzda_minuly_rok) * 100,
+        2
+    ) AS trend_v_percentach
+FROM (
+    SELECT 
+        payroll_year,               
+        industry_name,      
+        industry_branch_code,       
+        priemerná_mzda_odvetví, 
+        LAG(priemerná_mzda_odvetví, 1) OVER (
+            PARTITION BY industry_name       
+            ORDER BY payroll_year   
+        ) AS mzda_minuly_rok 
+    FROM 
+        avg_industry_salary 
+    WHERE 
+        payroll_year BETWEEN 2000 AND 2021
+) AS poddopyt_mzdy
+ORDER BY 
+    industry_name,
+    payroll_year;
+
+---Funkciu LAG som pre zmenu s pôvodným cte vložil do klazuly from a premenoval ako poddopyt_mzdy
+
+SELECT * FROM medziročný_rast_miezd;
+
+---Porovnanie medziročného rastu miezd a medziročného rastu cien potravín
+
+CREATE VIEW data_academy_content.mesačné_ceny_1 as
+SELECT 
+cp.category_code,
+cpc.name AS food_name,
+date_trunc('month',cp.date_from)::date AS month_start,
+sum(cp.value) AS total_price
+FROM czechia_price cp
+JOIN czechia_price_category AS cpc ON cp.category_code=cpc.code
+WHERE cp.date_from BETWEEN '2006-01-02' AND '2018-12-10'
+GROUP BY cp.category_code,cpc.name, date_trunc('month',cp.date_from);
+
+SELECT * FROM data_academy_content.mesačné_ceny_1;
+
+
+--- ďalej vypočítam ceny medzi rokmi
+CREATE VIEW data_academy_content.food_yoy_prices AS 
+SELECT
+  food_name,
+  month_start,
+  total_price, 
+  ---Extrahovanie mesiaca a roka z formátu dátumu v primárnej tabuľke
+  extract(MONTH FROM month_start) AS MONTH,
+  extract(YEAR FROM month_start) AS YEAR,
+  ---month over month, výpočet medzi mesiacmi
+  CASE
+    WHEN LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start) IS NULL THEN NULL
+    WHEN LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start) = 0 THEN NULL
+    ELSE (total_price - LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start))
+         / NULLIF(LAG(total_price, 1) OVER (PARTITION BY food_name ORDER BY month_start), 0) * 100
+  END AS pct_change_mom,
+  ---yoy, výpočet medzi rokmi
+  CASE
+    WHEN LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start) IS NULL THEN NULL
+    WHEN LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start) = 0 THEN NULL
+    ELSE (total_price - LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start))
+         / NULLIF(LAG(total_price, 12) OVER (PARTITION BY food_name ORDER BY month_start), 0) * 100
+  END AS pct_change_yoy
+FROM data_academy_content.mesačné_ceny_1;
+
+SELECT * FROM data_academy_content.food_yoy_prices;
+
+--- Takto som dostal % zmenu oproti predošlému mesiacu a rovnakému mesiacu pred rokom
+
+---Ešte potrebujem priemer medziročných rastov potravín za celé obdobie
+CREATE VIEW data_academy_content.yoy_avg_food AS 
+SELECT 
+food_name,
+avg(pct_change_yoy) AS avg_yoy_growth 
+FROM food_yoy_prices
+GROUP BY food_name
+ORDER BY food_name;
+
+SELECT * FROM data_academy_content.yoy_avg_food;
+
+---Porovnanie rastu cien potravín a vývoja miezd medzi rokmi s ohľadom na zadanie,či rástol o 10%
+
+CREATE VIEW data_academy_content.ceny_mzdy_rok AS 
+SELECT year
+pct_change_yoy,
+trend_v_percentach
+FROM food_yoy_prices 
+JOIN medziročný_rast_miezd AS mrm ON year = mrm.payroll_year
+WHERE (pct_change_yoy - mrm.trend_v_percentach) > 10;
+
+SELECT * FROM data_academy_content.ceny_mzdy_rok;
+
+SELECT min(trend_v_percentach), max(trend_v_percentach) 
+FROM ceny_mzdy_rok;
+
+---Odpoveď : áno, existuje rok - 2008, kedy ceny potravín výrazne medziročne narástli oproti mzdám, konkrétne o 13,87 %. Treba povedať, že väčším či menším nárastom cez 10% sa vyznačujú aj roky 2017 a 2018(12,28 a 10,6%)
+
+
+
+
+
+
+
+
+---5.
+SELECT * FROM economies;
+
+SELECT * FROM countries;
+
+---Najprv idem vypočítať rast hdp pre Česko za roky 2006-2018(spoločné s tabuľkami miezd a potravín)
+
+CREATE VIEW rast_hdp_CZ AS
+SELECT
+    year,
+    country,
+    gdp,
+    ROUND(((gdp - prev_gdp) / prev_gdp) * 100)::numeric,
+    2 
+    AS medzirocne_hdp
+FROM (
+    SELECT
+        e.year,
+        c.country,
+        e.gdp,
+        LAG(e.gdp) OVER (ORDER BY e.year) AS prev_gdp
+    FROM economies e
+    JOIN countries c
+        ON e.country = c.country
+    WHERE c.country = 'Czech Republic'
+      AND e.year BETWEEN 2006 AND 2018
+) t;
+ 
+SELECT * FROM rast_hdp_CZ;
+
+---Tu sa zaokrúhlila medziročná zmena GDP, preto round
+--- Medziročné hdp je na hodnote 2 miliárd
+
+--- ďalej porovnám rast jednotlivých makroekonomických trendov pre Česko počas rokov 2006-2018
+
+
+
+--- Vytvorím podporné view pre ceny potravín medzi rokmi na základe roku
+CREATE VIEW inflation_yearly as
+SELECT 
+year,
+avg(pct_change_yoy) AS avg_yoy_growth
+FROM data_academy_content.food_yoy_prices 
+GROUP BY year 
+ORDER BY year;
+
+SELECT * FROM inflation_yearly;
+
+
+CREATE VIEW rezultat_rastu AS
+SELECT
+    h.year,
+    h.country,
+    h.medzirocne_hdp,
+    mrm.priemerná_mzda_odvetví,
+    mrm.trend_v_percentach,
+    iy.avg_yoy_growth
+FROM rast_hdp_CZ h
+JOIN medziročný_rast_miezd mrm
+    ON h.year = mrm.payroll_year
+JOIN inflation_yearly iy
+    ON h.year = iy.year
+WHERE h.country = 'Czech Republic'
+  AND h.year BETWEEN 2006 AND 2018
+ORDER BY h.year;
+
+
+SELECT * FROM rezultat_rastu;
+
+
+--- Pre zistenie, či rast hdp sa ukáže nasledujúci rok
+
+SELECT
+    year,
+    medzirocne_hdp,
+    LEAD(trend_v_percentach) OVER (ORDER BY year) AS rast_miezd_o_rok,
+    LEAD(avg_yoy_growth) OVER (ORDER BY year) AS rast_cien_o_rok
+FROM rezultat_rastu
+ORDER BY year;
+
+
+--- Vytvorím pohľad na priemerný rast miezd na rok
+CREATE VIEW rast_miezd_rok AS
+SELECT
+    payroll_year,
+    AVG(trend_v_percentach) AS rast_miezd_pct
+FROM medziročný_rast_miezd
+WHERE trend_v_percentach IS NOT NULL
+GROUP BY payroll_year
+ORDER BY payroll_year;
+
+SELECT * FROM rast_miezd_rok;
+
+
+--- Nasleduje pohľad na analýzu % ako rástli mzdy a ceny voči hdp na každý rok zvlášť
+
+CREATE VIEW analyza_hdp AS
+SELECT
+    h.year AS rok,
+    h.medzirocne_hdp AS rast_hdp_pct,
+    m.rast_miezd_pct,
+    i.avg_yoy_growth AS rast_cien_potravin_pct
+FROM rast_hdp_CZ h
+JOIN rast_miezd_rok m
+    ON h.year = m.payroll_year
+JOIN inflation_yearly i
+    ON h.year = i.year
+WHERE h.country = 'Czech Republic'
+  AND h.year BETWEEN 2006 AND 2018
+ORDER BY h.year;
+
+---Prehľadnejšie než to prvotné
+SELECT * FROM analyza_hdp;
+
+--- Mzdy majú hodnotu pre rok 2006, lebo primárna tabuľka obsahuje i skoršie roky, ale primárna tabuľka pre potraviny nie, preto je prvá hodnota pct cien potravín, prázdna
+
+--- HDP je konštatné na hodnote 2, čiže nepreukazuje markantný pohyb
+--- Počas rokov 2009 a 2010 ceny stúpli z veľkého - na skoro 1 percento, ale mzdy klesli o cca 1%
+--- Rok 2016 má nárast miezd na 4% oproti predošlému roku, ale ceny klesali
+--- Otázku potvrdzuje medziročne rok 2017, kedy mzdy dosiahli až 6,8% a a ceny stúpli výraznejšie až na 7,3%
+ 
+
+
+---Kontrola obsahu dát vo view
+SELECT * FROM rast_hdp_CZ;
+
+SELECT * FROM medziročný_rast_miezd AS mrm;
+
+SELECT 
+h.year,
+h.medzirocne_hdp,
+mrm.trend_v_percentach 
+FROM rast_hdp_CZ AS h
+JOIN medziročný_rast_miezd AS mrm ON h.year=mrm.payroll_year;
+
+
+SELECT 
+h.year,
+h.medzirocne_hdp,
+fya.avg_yoy_growth 
+FROM rast_hdp_CZ AS h
+JOIN food_year_avg AS fya ON h.year=fya.year;
+
+
+SELECT
+    pg_typeof(year)
+FROM rast_hdp_cz AS rhc 
+LIMIT 1;
+
+
+SELECT DISTINCT payroll_year
+FROM medziročný_rast_miezd
+ORDER BY 1;
+
+SELECT distinct year
+FROM rast_hdp_cz AS rhc ORDER BY 1;
+
+
+SELECT *
+FROM medziročný_rast_miezd
+WHERE payroll_year IS NULL;
+
+
+SELECT
+    h.year AS h_year,
+    mrm.payroll_year AS m_year
+FROM rast_hdp_CZ h
+JOIN medziročný_rast_miezd mrm
+    ON TRUE
+LIMIT 20;
+
+
+SELECT
+    COUNT(*) AS matches
+FROM rast_hdp_CZ h
+JOIN medziročný_rast_miezd mrm
+    ON h.year = REPLACE(mrm.payroll_year::text, ',', '')::int;
+
+
+SELECT h.year, fya.year
+FROM rast_hdp_CZ h
+JOIN food_year_avg fya
+ON h.year = REPLACE(fya.year::text, ',', '')::int
+
+
+
+SELECT DISTINCT year FROM food_year_avg ORDER BY 1;
+
+SELECT DISTINCT year FROM rast_hdp_CZ ORDER BY 1;
+
+
+
+
+
+---6.
+
+SELECT * FROM countries;
+
+SELECT country FROM countries AS c
+WHERE continent='Europe';
+
+--- 48 európskych štátov
+
+SELECT * FROM economies AS e ;
+
+--- Idem spracovať dodatočnú tabuľku pre zadanie
+
+CREATE VIEW europe_data AS
+SELECT
+    c.country,
+    c.continent,
+    e.year,
+    e.gdp,
+    e.gini,
+    e.population
+FROM economies e
+LEFT JOIN countries c
+    ON e.country = c.country
+WHERE c.continent = 'Europe'
+  AND e.year BETWEEN 2006 AND 2018
+ORDER BY c.country, e.year;
+
+
+SELECT * FROM europe_data;
+
+---Viacerým štátom chýbajú dáta pri koeficiente gini
+--- Faerské ostrovy nemajú dáta pre hdp medzi rokmi 2011 až 2018
+--- A Gibraltár dokonca vôbec, Lichtenštajnsko trochu postráda gdp dáta
+
+---Ak vyberieme štát s populáciou cca podobnou ako ČR, napr. Belgicko
+--- V rozpätí rokov jeho počet obyvateľov vzrástol o cca milión
+--- GDP rovnako rástlo až na hodnotu ďaleko presahujúcu tú v Česku - cez 537 miliárd 
+---Gini má miernejší pohyb medzi 26 a 28 - nízka príjmová nerovnosť
+
+--- Grécko(ako štát s o čosi nižším počtom občanov)
+--- GDP Grékom kleslo postupne o 72%
+--- Gini koeficient sa nachádza v hodnotách vysoko za 30-tkou, čo znamená vysokú príjmovú nerovnosť
+--- Oproti Česku, na nižšiu populáciu, má(zo známych dôvodov), nižší HDP a vysoké Gini 
+
+
+--- Pre porovnanie s ČR
+SELECT 
+* 
+FROM 
+europe_data 
+WHERE country='Czech Republic';
+
+--- Populácia Česka rástla medzi rokmi 2006 - 2018 od 10,24 milióna po 10,63 milióna obyvateľov
+---Gini koeficient sa pohybuje prevažne okolo hodnoty 26 
+--- GDP rástlo od hodnoty 197 miliárd po 253 miliárd  
