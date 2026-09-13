@@ -15,6 +15,12 @@ Tento projekt sa zaoberá databázovou analýzou vývoja priemerných miezd, cie
 ---
 
 ## Metodika a riešenie výskumných otázok
+### Otázka 1: Sledovanie vývoja miezd odvetví
+V rámci rokov obsiahnutých v tabuľke miezd
+
+**Záver:** Priemerné mzdy v Českej republike dlhodobo rástli od začiatku milénia až približne do roku 2019. Následne sa v niektorých odvetviach, najmä v období rokov 2019–2021, objavili medziročné poklesy. Výraznejší pokles bol zaznamenaný napríklad v ubytovaní a stravovaní, kultúrnych a zábavných činnostiach či vo finančníctve a poisťovníctve. Tento vývoj súvisel najmä s rozdielnym dopadom pandémie COVID-19 na jednotlivé časti ekonomiky.
+
+Naopak, výraznejší dlhodobý rast priemerných miezd zaznamenali činnosti v oblasti nehnuteľností, zdravotníctvo a sociálna starostlivosť, ako aj výroba a rozvod elektriny, plynu, tepla a klimatizovaného vzduchu. Z výsledkov teda vyplýva, že mzdy nerástli vo všetkých odvetviach rovnomerne a bez výnimiek. Celkový trend bol síce rastúci, no v jednotlivých rokoch sa v niektorých odvetviach objavili dočasné poklesy.
 
 ### Otázka 2: Porovnanie kúpnej sily (Chlieb vs. Mlieko)
 Porovnanie množstva chleba (kg) a mlieka (l), ktoré bolo možné kúpiť za priemernú mzdu v prvom (2006–2012) a poslednom (2012–2018) porovnateľnom období.
