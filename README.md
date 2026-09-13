@@ -1,85 +1,71 @@
 # Elekani-_SQL_Repozit-r
-Repozitár s projektom pre Engeto
-**Autor**
-Martin Elekanič
-**Zameranie** na zistenie vývoja miezd a cien potravín v Českej Republike počas spoločných rokov 2006 až 2018, vrátane dodatočného materiálu v podobe ďalšej tabuľky o vplyve HDP a iných makroekonomických ukazovateľoch voči populácií ČR a ostatných európskych štátov.                                                            **Prostredie** : Projekt prebiehal v programe Dbeaver Community na výukovej databáze a platforme PostgreSQL. 
+# Projekt: Analýza miezd, cien potravín a HDP v ČR
 
-**Analýza miezd a cien potravín + Makroekonomické trendy a populácia európskych štátov**
-Štruktúra projektu
-t_Martin_Elekanič_sql_projekt_primary_final     *Pre vývoj pohybu miezd a cien potravín
-t_Martin_Elekanič_sql_projekt_secondary_final   * Pre dodatočný materiál o HDP a iných ukazovateľoch voči populácií štátov Európy
+Tento projekt sa zaoberá databázovou analýzou vývoja priemerných miezd, cien potravín a hrubého domáceho produktu (HDP) v Českej republike. Obsahuje SQL skripty pre tvorbu primárnych a sekundárnych pohľadov (`VIEWS`), spracovanie časových radov a vyhodnotenie výskumných otázok.
 
-**Výskumné otázky**
-1.Rostou v průběhu let mzdy ve všech odvětvích, nebo v některých klesají? 
-2.Kolik je možné si koupit litrů mléka a kilogramů chleba za první a poslední srovnatelné období v dostupných datech cen a mezd? 
-3.Která kategorie potravin zdražuje nejpomaleji (je u ní nejnižší percentuální meziroční nárůst)? 
-4.Existuje rok, ve kterém byl meziroční nárůst cen potravin výrazně vyšší než růst mezd (větší než 10 %)?
-5.Má výška HDP vliv na změny ve mzdách a cenách potravin? Neboli, pokud HDP vzroste výrazněji v jednom roce, projeví se to na cenách potravin či mzdách ve stejném nebo následujícím roce výraznějším růstem?      
+---
 
-**Odpovede**
-**1**.--- Prezrel som výstup tabuľky porovnania miezd odvetví a zistenia píšem nižšie podľa sledovania čísel vývoja mzdy
+## Ciele projektu
 
----Administratíva - nárast
----činnosti v oblasti nemovitostí - nárast
----Doprava a skladování - nárast
----Informační a komunikační činnosti - nárast
---- Kultúrni,zábavní a rekreační činnosti - nárast
---- Ostatní činnosti - nárast
----Penežnictví a pojišťovníctvi - nárast
---- Profesní,vedecké a technické činnosti - nárast
---- Stavebníctví - nárast
---- Težba a dobývání - nárast
---- Ubytování,stravování a pohostinství - nárast
---- Velkoobchod a maloobchod - nárast
----Verejná správa a obrana - nárast
---- Výroba a rozvod elektriny,plynu - nárast
---- Vzdelávání -nárast
---- Zásobování vodou, činnosti s odpady a sanacemi - nárast
---- Zdravotní a sociální péče - nárast
---- Zemedelství,lesníctvi,rybárství - nárast
---- Zpracovatelský prumysl - nárast
+- **Vytvorenie databázových pohľadov** prepájajúcich údaje o mzdám, cenách potravín a makroekonomike.
+- **Výpočet medziročných percentuálnych zmien** pomocou analytických a agregačných funkcií (`JOIN`, `GROUP BY`, `CASE`, `LAG`, `LEAD`).
+- **Analýza kúpnej sily** obyvateľstva v rôznych časových obdobiach.
+- **Hodnotenie závislostí** medzi rastom HDP, miezd a cien potravín.
 
---- Takže všetky odvetvia vykazujú nárast miezd
+---
 
-**2.** ---Za celé spoločné merané obdobie rozdelené na dvakrát (6 rokov), bolo možné za priemernú mzdu kúpiť v prvých 6 rokoch(7,59) kilogramov chleba a 9,13 litrov mlieka
---- Počas ďalších 6 rokov (2012 až 2018) sa dalo kúpiť 8,15 kg chleba a 9,74 litrov mlieka, čo predstavuje rozdiel 0,56 kg chleba a 0,61 litra mlieka.
+## Metodika a riešenie výskumných otázok
 
-**3.** 
----Najnižší % nárast a teda aj najpomalší nárast z kategórie potravín majú papriky - najbližšia kladná hodnota k 0
+### Otázka 2: Porovnanie kúpnej sily (Chlieb vs. Mlieko)
+Porovnanie množstva chleba (kg) a mlieka (l), ktoré bolo možné kúpiť za priemernú mzdu v prvom (2006–2012) a poslednom (2012–2018) porovnateľnom období.
 
-**4.** áno, existuje rok - 2008, kedy ceny potravín výrazne medziročne narástli oproti mzdám, konkrétne o 13,87 %. Treba povedať, že väčším či menším nárastom cez 10% sa vyznačujú aj roky 2017 a 2018 (12,28 a 10,6%)
+| Obdobie | Priemerný počet kg chleba | Priemerný počet l mlieka |
+| :--- | :---: | :---: |
+| **Prvé obdobie (2006–2012)** | 1 084,4 kg | 1 304,6 l |
+| **Posledné obdobie (2012–2018)** | 1 165,0 kg | 1 392,0 l |
 
-**5.** 
-Nepotvrdilo sa jednoznačne, že by malo HDP vplyv na zmenu ceny potraviny či výšky mzdy. Pri väčšine rokov vidno síce väčší či menší pohyb, ale nedá sa to generalizovať. Otázku potvrdzuje medziročne rok 2017, kedy mzdy dosiahli až 6,8% a a ceny stúpli výraznejšie až na 7,3%. Samotné HDP zostáva na stabilnej hodnote a nepreukazuje markantný pohyb.
+> **Záver:** Kúpna sila obyvateľstva pri základných potravinách (chlieb a mlieko) medzi prvým a posledným obdobím mierne vzrástla.
 
+---
 
+### Otázka 3: Potravina s najnižším medziročným nárastom
+Pri analýze sa hľadalo **matematické minimum** medziročnej percentuálnej zmeny ceny potravín.
 
+- **Správna odpoveď:** **Kryštálový cukor** s priemernou medziročnou zmenou **−11,5 %** (cena v priemere klesala/zlacňovala).
+- **Ošetrenie dátových výnimiek:**
+  - `Kapr živý`: Podľa metodiky ČSÚ sa sleduje iba v decembri. Pôvodné pouzitie `LAG(..., 12)` porovnávalo 12 decembrových záznamov (t. j. 12 rokov dozadu), čo skresľovalo výsledok (−57 %). Táto výnimka bola z ročného mesačného porovnania odstránená.
+  - `Volatilné potraviny`: Zemiaky, rajčiaky, maslo a papriky vykazovali vysokú výkyvovosť (napr. papriky +90,2 %, zemiaky +61 %). Tieto extrémy boli ponechané, nakoľko odzrkadľujú reálne vplyvy počasia, úrody a trhu.
 
-**Primárne tabuľky,z ktorých sa vychádzalo**
-czechia_price, czechia_price_category
-czechia_payroll, czechia_payroll_unit, czechia_payroll_value_type, czechia_payroll_calculation, czechia_payroll_industry_branch
-countries
-economies
+---
 
-**Informácia o chýbajúcich hodnotách**
-Pri zisťovaní údajov o ekonomikách štátov som si všimol, že Viacerým štátom chýbajú dáta pri koeficiente gini
- Faerské ostrovy nemajú dáta pre hdp medzi rokmi 2011 až 2018
- A Gibraltár dokonca vôbec, Lichtenštajnsko trochu postráda gdp dáta
+### Otázka 4: Medziročný nárast cien potravín vs. mzdy (> 10 %)
+Zisťovalo sa, či existuje rok, v ktorom ceny potravín medziročne vzrástli o viac ako 10 % voči rastu miezd.
 
-**Informácia o hodnotách null**
-Prítomnosť NULL hodnôt v mojich Views nie je chybou dopytu, ale korektným zobrazením reality zdrojových dát. Dáta pochádzajú z rôznych zdrojov s rôznym časovým pokrytím (mzdy 2000–2021 vs. ceny 2006–2018). Použitie NULL hodnôt namiesto ich umelého vymazania (cez INNER JOIN)  umožnilo zachovať kompletný prehľad o vývoji miezd aj v rokoch, kedy sa ceny potravín ešte nesledovali. Pri interpretácii konkrétnych otázok tieto NULL hodnoty  filtrujem priamo v dopytoch. Dáta náražajú na špcifickú granularitu priemyselných odvetví, čo znamená, že ceny potravín sú naviazané na Spracovateľský priemysel. Keďže ostatných 18 odvetví (napr. Informační technologie, Penežníctvo stavebnictví) tieto potraviny nevyrába, stĺpce s cenami potravín a prepočtom kúpnej sily pre ne zostávajú NULL, čo je metodicky správne. Čo sa týka použitia joinov, použitie LEFT JOIN  bolo zámerné, aby sa nestratili informácie o mzdách v iných odvetviach a rokoch, aj keď pre ne nie sú údaje o cenách potravín. Ak by sa použil INNER JOIN, databáza by odfiltrovala všetky roky mimo 2006–2018 a všetky odvetvia okrem spracovateľského priemyslu, čím by sa prišlo o dôležitý kontext vývoja miezd
+> [!NOTE]
+> **Úprava agregácie:** Použitie ročného priemeru (`AVG`) naprieč všetkými potravinami za obdobie **2006–2018** ukázalo, že ročná medziročná zmena cien potravín **ani v jednom roku neprekročila hranicu 10 %**.
 
+---
+
+### Otázka 5: Vplyv HDP na mzdy a ceny potravín
+Analýza porovnávala súbežnú reakciu (rok $t$) a oneskorenú reakciu (rok $t+1$ pomocou funkcie `LEAD()`).
+
+- **Mzdy:** Preukázali **náznak oneskorenej reakcie** (cca 1 rok) — vyšší rast HDP sa obvykle prejavia výraznejším nárastom miezd v nasledujúcom roku.
+- **Ceny potravín:** Nepotvrdili pravidelný vzťah k HDP. Ceny potravín podliehajú vysokej volatilite (počasie, dovoz) a vykazujú skôr štatistickú súvislosť než priamu príčinnú závislosť.
+
+---
+
+## Obmedzenia projektu
+
+- **Pandémia COVID-19 (2020–2021):** Spôsobila výkyvy a pokles miezd v odvetviach ako ubytovanie, stravovanie a kultúra.
+- **Surovinové šoky (2016–2017):** Nedostatok surovín na výrobu mliečnych výrobkov viedol k dočasnému nárastu cien mlieka a masla.
+
+---
+
+## Zhrnutie
+
+Projekt poskytol praktické skúsenosti s:
+1. Navrhovaním a optimalizáciou relational SQL queries (`JOIN`, `GROUP BY`, `CASE`, window functions).
+2. Čistením dát a metodickým spracovaním štatistických výkyvov.
+3. Spájaním makroekonomických dát a interpretáciou ekonomických súvislostí.
 
 
-
-**Zodpovedajúce výsledné tabuľky****Views**
-1. Vývoj_Miezd
-2. konečný_prehľad_množstva
-3. yoy_avg_food
-4. ceny_mzdy_rok
-5. rast_miezd_rok,  analyza_hdp
-6. europe_data (pre doplňujúci materiál o ekonomike ostatných štátov Európy)
-
-
-**Technológie**
-Dbeaver Community, PostgreSQL
